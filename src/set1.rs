@@ -1,15 +1,15 @@
 use core::f32;
 use std::collections::HashMap;
 use base64::prelude::*;
-use openssl::symm::{decrypt, Cipher};
+use openssl::symm::{decrypt, Cipher, Crypter, Mode};
 
-pub fn repeating_key_xor(hex_arr: &[u8], key_hex: &[u8]) -> String {
+pub fn repeating_key_xor(hex_arr: &[u8], key_hex: &[u8]) -> Vec<u8> {
     (0..hex_arr.len())
-        .map(|i| format!("{:0>2x}", hex_arr[i] ^ key_hex[i % key_hex.len()]))
+        .map(|i| hex_arr[i] ^ key_hex[i % key_hex.len()])
         .collect()
 }
 
-pub fn decode_repeating_key_xor(parsed: &[u8]) -> (String, String) {
+pub fn decode_repeating_key_xor(parsed: &[u8]) -> (Vec<u8>, Vec<u8>) {
     let mut sum = 0.0;
     let mut num_of_blocks = 0.0;
     let mut normalized_edit_distance = f32::MAX;
@@ -51,7 +51,7 @@ pub fn decode_repeating_key_xor(parsed: &[u8]) -> (String, String) {
 
     //Decode using key
     let decoded = repeating_key_xor(&parsed, &key);
-    (decoded, String::from_utf8(key).expect("Error converting key to string"))
+    (decoded, key)
 }
 
 
@@ -84,19 +84,8 @@ pub fn hex_to_b64(hex_string:& str) -> String {
     BASE64_STANDARD.encode(&bytes)
 }
 
-pub fn fixed_xor(buf1: &str, buf2: &str) -> String {
-    if buf1.len() != buf2.len() {
-        return String::from("Need equal sized buffers");
-    }
-    
-    let decoded_buf1 = parse_hex(buf1, false);
-    let decoded_buf2 = parse_hex(buf2, false);
-    let mut out: String = Default::default();
-
-    for i in 0..decoded_buf1.len() {
-        out += &(format!("{}", decoded_buf1[i] ^ decoded_buf2[i]));
-    }
-    out
+pub fn fixed_xor(buffer1: &[u8], buffer2: &[u8]) -> Vec<u8> {
+    buffer1.iter().zip(buffer2.iter()).map(|(&x, &y)| x ^ y).collect()
 }
 
 pub fn parse_hex(buf: &str, even: bool) -> Vec<u8> {
@@ -126,10 +115,21 @@ pub fn hamming_distance(buf1: &[u8], buf2: &[u8]) -> Result<u32, &'static str> {
     Ok(distance)
 }
 
-pub fn decrypt_aes_ecb(cipher_text: &[u8], key: &str) -> Vec<u8> {
+pub fn decrypt_aes_ecb(ciphertext: &[u8], key: &[u8], pad: bool) -> Vec<u8> {
+    println!("{:?}", ciphertext);
     let cipher = Cipher::aes_128_ecb();
-    let plaintext = decrypt(cipher, key.as_bytes(), None, cipher_text).expect("Error decryping AES");
-    plaintext
+    let mut decrypter = Crypter::new(cipher, Mode::Decrypt, key, None).expect("Error creating decrypter");
+    decrypter.pad(pad);
+
+    let mut output = vec![0; ciphertext.len() + cipher.block_size()];
+    let decrypted_len = decrypter.update(ciphertext, &mut output).expect("Error extracting decrypted_len");
+    let final_len = decrypter.finalize(&mut output[decrypted_len..]).expect("Error extracting final_len");
+
+    // Resize the output to the final decrypted length
+    output.resize(decrypted_len + final_len, 0);
+
+    // Extract the decrypted data
+    output[..decrypted_len + final_len].to_vec()
 }
 
 pub fn detect_aes_ecb(chipher_text: &[u8]) -> bool {

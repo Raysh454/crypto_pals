@@ -116,7 +116,6 @@ pub fn hamming_distance(buf1: &[u8], buf2: &[u8]) -> Result<u32, &'static str> {
 }
 
 pub fn decrypt_aes_ecb(ciphertext: &[u8], key: &[u8], pad: bool) -> Vec<u8> {
-    println!("{:?}", ciphertext);
     let cipher = Cipher::aes_128_ecb();
     let mut decrypter = Crypter::new(cipher, Mode::Decrypt, key, None).expect("Error creating decrypter");
     decrypter.pad(pad);

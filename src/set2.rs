@@ -38,7 +38,7 @@ pub fn encrypt_aes_ecb(plaintext: &[u8], key: &[u8], iv: Option<&[u8]>) -> Vec<u
     let block_size = 16;
     let cipher = Cipher::aes_128_ecb();
     let ciphertext = encrypt(cipher, &key, iv, &pkcs7_padding(&plaintext, block_size)).expect("Error encrypting AES");
-    ciphertext
+    ciphertext[..16].to_vec()
 }
 
 pub fn encrypt_aes_cbc(plaintext: &[u8], key: &[u8], iv: Option<&[u8]>) -> Vec<u8> {
@@ -63,7 +63,8 @@ pub fn encrypt_aes_cbc(plaintext: &[u8], key: &[u8], iv: Option<&[u8]>) -> Vec<u
     cipher_text
 }
 
-pub fn decrypt_aes_cbc(ciphertext: &[u8], key: &[u8], iv: Option<&[u8]>, block_size: usize) -> Vec<u8> {
+pub fn decrypt_aes_cbc(ciphertext: &[u8], key: &[u8], iv: Option<&[u8]>) -> Vec<u8> {
+    let block_size = 16;
     let mut iv = match iv {
         Some(iv) => {
             if iv.len() != block_size {

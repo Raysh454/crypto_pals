@@ -13,11 +13,18 @@ fn main() -> Result<(), io::Error> {
     let encrypted = BASE64_STANDARD.decode(b64).unwrap();
     let key = "YELLOW SUBMARINE".as_bytes();
 
-    let decrypted = set2::decrypt_aes_cbc(&encrypted, &key, None, 16);
+    let decrypted = set2::decrypt_aes_cbc(&encrypted, &key, None);
    
     let encrypted = set2::encrypt_aes_cbc(&decrypted, &key, None);
 
-    //let decrypted = set2::decrypt_aes_cbc(&encrypted, &key, None, 32);
+    let decrypted = set2::decrypt_aes_cbc(&encrypted, &key, None);
+
+    //let plaintext = "Play that funky".as_bytes();
+    //let encrypted = encrypt_aes_ecb(plaintext, key, None);
+
+    //println!("{:?}", encrypted);
+    
+   // let decrypted = decrypt_aes_ecb(&encrypted[..16], key, false);
 
     match String::from_utf8_lossy(&decrypted) {
         Cow::Borrowed(s) => println!("{}", s), // Valid UTF-8
